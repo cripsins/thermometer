@@ -1,3 +1,4 @@
+using System;
 using Microsoft.Extensions.Caching.Memory;
 
 namespace thermometer.middleware
@@ -29,11 +30,10 @@ namespace thermometer.middleware
         private int _count = 0;
 
         private double _sum = 0;
-        private double _min = 0;
+        private double _min = Convert.ToDouble(int.MaxValue);
         private double _max = 0;
         private double _average = 0;
         private IMemoryCache _cache;
-
         public TemperatureCalculations(IMemoryCache cache)
         {
             if(cache != null)
@@ -79,8 +79,11 @@ namespace thermometer.middleware
 
         private string GetKey(IMemoryCache cache, string key)
         {
-            string value = "0";
-            cache.TryGetValue(key, out value);
+            string value = string.Empty;
+
+            var result = cache.TryGetValue(key, out value);
+            if(!result && key == CacheKeys.Min)
+                value = Convert.ToDouble(int.MaxValue).ToString();
             
             return value;
         }
@@ -96,7 +99,7 @@ namespace thermometer.middleware
             double.TryParse(GetKey(cache, CacheKeys.Average), out _average);
             int.TryParse(GetKey(cache, CacheKeys.Count), out _count);
             double.TryParse(GetKey(cache, CacheKeys.Max), out _max);
-            double.TryParse(GetKey(cache, CacheKeys.Min), out _min);
+            double.TryParse(GetKey(cache, CacheKeys.Min), out _min);            
             double.TryParse(GetKey(cache, CacheKeys.Sum), out _sum);
         }
     }
