@@ -79,7 +79,7 @@ namespace thermometer.middleware.tests
             var thermo = new TemperatureCalculations(memoryCache);
             var calc = thermo.GetCalculations();
 
-            Assert.True(calc.Min == Convert.ToDouble(int.MaxValue) && calc.Max == 0 && calc.Average == 0);
+            Assert.True(calc.Min == 0 && calc.Max == 0 && calc.Average == 0);
         }
 
         [Fact]
