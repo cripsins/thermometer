@@ -5,18 +5,19 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Caching.Memory;
 using System.IO;
 using System.Text;
+using thermometer.middleware.calculations;
 
 namespace thermometer.middleware
 {
     public class ThermometerMiddleware
     {
         private readonly RequestDelegate _next;
-        private readonly IMemoryCache _memoryCache;
+        private readonly ITemperatureCalculation _temperatureCalculation;
 
-        public ThermometerMiddleware(RequestDelegate next, IMemoryCache memoryCache)
+        public ThermometerMiddleware(RequestDelegate next, ITemperatureCalculation temperatureCalculation)
         {
             _next = next;
-            _memoryCache = memoryCache;
+            _temperatureCalculation = temperatureCalculation;
         }
 
         public async Task Invoke(HttpContext httpContext)
@@ -24,9 +25,6 @@ namespace thermometer.middleware
             if (httpContext == null) throw new ArgumentNullException(nameof(httpContext));
 
             var start = Stopwatch.GetTimestamp();
-
-            var thermo = new TemperatureCalculations(_memoryCache);
-            var calc = thermo.GetCalculations();
 
             try
             {
@@ -37,22 +35,23 @@ namespace thermometer.middleware
                     !string.IsNullOrWhiteSpace(httpContext.Response.ContentType) && 
                     httpContext.Response.ContentType.Contains("html"))
                 {
-                    byte[] test = Encoding.UTF8.GetBytes(string.Format("<!-- Thermometer middleware: Min: {0} Max: {1} Avg: {2} -->", calc.Min, calc.Max, calc.Average));
+                    byte[] test = Encoding.UTF8.GetBytes(_temperatureCalculation.GetOutput());
                     await httpContext.Response.Body.WriteAsync(test, 0, test.Length);
                 }
 
                 var elapsedMs = GetElapsedMilliseconds(start, Stopwatch.GetTimestamp());
-                CalculateTemperature(thermo, elapsedMs);
+                CalculateTemperature(_temperatureCalculation, elapsedMs);
             }
             catch (Exception)
                 // Still get the developer page
-                when (CalculateTemperature(thermo, GetElapsedMilliseconds(start, Stopwatch.GetTimestamp())))
+                when (CalculateTemperature(_temperatureCalculation, GetElapsedMilliseconds(start, Stopwatch.GetTimestamp())))
             {
 
             }
         }
 
-        bool CalculateTemperature(TemperatureCalculations thermo, double elapsedMs)
+        //bool CalculateTemperature(TemperatureCalculations thermo, double elapsedMs)
+        bool CalculateTemperature(ITemperatureCalculation thermo, double elapsedMs)
         {
             thermo.AddMeasure(elapsedMs);
             

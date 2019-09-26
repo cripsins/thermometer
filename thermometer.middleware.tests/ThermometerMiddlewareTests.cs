@@ -9,6 +9,8 @@ using System.IO;
 using System.Threading.Tasks;
 using Xunit;
 using Xunit.Abstractions;
+using thermometer.middleware.calculations;
+using thermometer.middleware.cache;
 
 namespace thermometer.middleware.tests
 {
@@ -26,7 +28,7 @@ namespace thermometer.middleware.tests
             return contextMock;
         }
 
-        private IMemoryCache GetMemoryCache()
+        private IThermometerCache GetMemoryCache()
         {
             var services = new ServiceCollection();
             services.AddMemoryCache();
@@ -34,13 +36,14 @@ namespace thermometer.middleware.tests
 
             var memoryCache = serviceProvider.GetService<IMemoryCache>();
 
-            return memoryCache;
+            return new MemoryThermometerCache(memoryCache);
         }
 
         [Fact]
         public async Task It_Should_Append_Calculations()
         {
-            var thermometerMiddleware = new ThermometerMiddleware(next: (innerHttpContext) => Task.FromResult(0), memoryCache: GetMemoryCache());
+            var temperatureCalculation = new TemperatureCalculations(GetMemoryCache());
+            var thermometerMiddleware = new ThermometerMiddleware(next: (innerHttpContext) => Task.FromResult(0), temperatureCalculation: temperatureCalculation);
             Mock<HttpContext> httpContextMoq = GetHttpContext("html/text");
 
             await thermometerMiddleware.Invoke(httpContextMoq.Object);
@@ -55,7 +58,8 @@ namespace thermometer.middleware.tests
         [Fact]
         public async Task It_Should_NOT_Append_Calculations()
         {
-            var thermometerMiddleware = new ThermometerMiddleware(next: (innerHttpContext) => Task.FromResult(0), memoryCache: GetMemoryCache());
+            var temperatureCalculation = new TemperatureCalculations(GetMemoryCache());
+            var thermometerMiddleware = new ThermometerMiddleware(next: (innerHttpContext) => Task.FromResult(0), temperatureCalculation: temperatureCalculation);
             Mock<HttpContext> httpContextMoq = GetHttpContext("text");
 
             await thermometerMiddleware.Invoke(httpContextMoq.Object);

@@ -26,6 +26,7 @@ namespace thermometer.sandbox
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddMemoryCache();
+            services.AddThermometer();
 
             services.Configure<CookiePolicyOptions>(options =>
             {
